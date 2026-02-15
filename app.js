@@ -12,10 +12,17 @@
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('nav-next');
   const monthNav = document.getElementById('month-nav');
+  const monthTotalEl = document.getElementById('month-total');
+  const totalValueEl = document.getElementById('total-value');
+  const barTrackEl = document.getElementById('bar-track');
+  const barFillEl = document.getElementById('bar-fill');
 
   var currentData = null;
   var availableMonths = [];
   var selectedMonthIndex = 0;
+
+  var OVERFORT_ID = 'overfort';
+  var INCOME_TOP_NAMES = ['UDI', 'Torghatten', 'Andre inntekter'];
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString('nb-NO') + ' kr';
@@ -94,18 +101,55 @@
       var forbruk = catSums[catId] || 0;
       var budsjett = catBudgets[catId];
       return {
+        catId: catId,
         category: categoryById.get(catId),
         forbruk: forbruk,
         budsjett: budsjett,
       };
-    }).filter(function (x) { return x.category; });
+    }).filter(function (x) {
+      if (!x.category) return false;
+      if (x.category.id === OVERFORT_ID || x.category.name === 'Overført') return false;
+      return true;
+    });
+
+    function sortOrder(a) {
+      var name = (a.category && a.category.name) || '';
+      var i = INCOME_TOP_NAMES.indexOf(name);
+      if (i !== -1) return i;
+      return INCOME_TOP_NAMES.length;
+    }
     entries.sort(function (a, b) {
+      var orderA = sortOrder(a);
+      var orderB = sortOrder(b);
+      if (orderA !== orderB) return orderA - orderB;
       return Math.abs(b.forbruk) - Math.abs(a.forbruk);
     });
+
+    var totalForbruk = entries.reduce(function (sum, e) { return sum + e.forbruk; }, 0);
+    var totalBudsjett = entries.reduce(function (sum, e) {
+      var b = e.budsjett != null && e.budsjett !== '' ? Number(e.budsjett) : 0;
+      return sum + b;
+    }, 0);
 
     monthTitleEl.textContent = formatMonthLabel(ym);
     btnPrev.disabled = selectedMonthIndex >= availableMonths.length - 1;
     btnNext.disabled = selectedMonthIndex <= 0;
+
+    if (totalBudsjett > 0 || totalForbruk !== 0) {
+      monthTotalEl.hidden = false;
+      totalValueEl.textContent = formatAmount(totalForbruk) + ' av ' + (totalBudsjett > 0 ? formatAmount(totalBudsjett) : '– kr');
+      if (totalBudsjett > 0) {
+        totalValueEl.className = 'total-value ' + (Math.abs(totalForbruk) > totalBudsjett ? 'over' : 'under');
+        var pct = Math.min(100, (Math.abs(totalForbruk) / totalBudsjett) * 100);
+        barFillEl.style.width = pct + '%';
+        barFillEl.className = 'bar-fill ' + (Math.abs(totalForbruk) > totalBudsjett ? 'over' : 'under');
+      } else {
+        totalValueEl.className = 'total-value';
+        barFillEl.style.width = '0%';
+      }
+    } else {
+      monthTotalEl.hidden = true;
+    }
 
     monthCategoriesEl.innerHTML = '';
     entries.forEach(function (item) {
@@ -120,9 +164,9 @@
         var budsjettNum = Number(item.budsjett);
         var overBudsjett = forbrukAbs > budsjettNum;
         valSpan.className = 'sum ' + (overBudsjett ? 'over' : 'under');
-        valSpan.textContent = formatAmount(item.forbruk) + ' / ' + formatAmount(budsjettNum);
+        valSpan.textContent = formatAmount(item.forbruk) + ' av ' + formatAmount(budsjettNum) + ' kr';
       } else {
-        valSpan.textContent = formatAmount(item.forbruk) + ' / – kr';
+        valSpan.textContent = formatAmount(item.forbruk) + ' av – kr';
       }
       li.appendChild(nameSpan);
       li.appendChild(valSpan);

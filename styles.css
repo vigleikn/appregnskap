@@ -129,6 +129,54 @@ body {
   cursor: default;
 }
 
+.month-view .month-total {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.month-view .total-label {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.month-view .total-value {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.month-view .total-value.over {
+  color: var(--negative);
+}
+
+.month-view .total-value.under {
+  color: var(--positive);
+}
+
+.month-view .bar-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.month-view .bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.month-view .bar-fill.over {
+  background: var(--negative);
+}
+
+.month-view .bar-fill.under {
+  background: var(--positive);
+}
+
 .category-list {
   list-style: none;
   margin: 0;
@@ -210,3 +258,12 @@ body {
 .month-block .sum.negative { color: var(--negative); }
 .month-block .sum.over { color: var(--negative); }
 .month-block .sum.under { color: var(--positive); }
+
+.category-list .sum.over {
+  color: var(--negative);
+  font-weight: 600;
+}
+
+.category-list .sum.under {
+  color: var(--positive);
+}
