@@ -88,6 +88,47 @@ body {
   color: var(--text-muted);
 }
 
+.month-view .month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.month-view .month-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+
+.month-view .nav-arrow {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 1.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.month-view .nav-arrow:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.month-view .nav-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .category-list {
   list-style: none;
   margin: 0;

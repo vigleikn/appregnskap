@@ -27,13 +27,14 @@
 
       <section id="has-data" class="has-data" hidden>
         <div class="meta card" id="meta"></div>
-        <section class="card">
-          <h2>Månedlig forbruk mot budsjett</h2>
-          <div id="by-month"></div>
-        </section>
-        <section class="card">
-          <h2>Sum per kategori (totalt)</h2>
-          <ul id="by-category" class="category-list"></ul>
+        <section class="card month-view">
+          <div class="month-nav" id="month-nav">
+            <button type="button" class="nav-arrow" id="btn-prev" aria-label="Forrige måned">←</button>
+            <h2 class="month-title" id="month-title"></h2>
+            <button type="button" class="nav-arrow" id="nav-next" aria-label="Neste måned">→</button>
+          </div>
+          <p class="no-data hint" id="month-hint" hidden></p>
+          <ul id="month-categories" class="category-list"></ul>
         </section>
       </section>
     </main>
