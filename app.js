@@ -24,6 +24,31 @@
   var OVERFORT_ID = 'overfort';
   var INCOME_TOP_NAMES = ['UDI', 'Torghatten', 'Andre inntekter'];
 
+  /**
+   * Build a lookup of income category IDs from the category hierarchy.
+   * Income categories have positive raw amounts from bank transactions,
+   * while expense/savings categories have negative raw amounts.
+   */
+  function buildIncomeIds(categories) {
+    var ids = {};
+    // Find income hovedkategorier
+    categories.forEach(function (c) {
+      if (c.type === 'hovedkategori') {
+        var nameLc = (c.name || '').toLowerCase();
+        if (c.id === 'cat_inntekter_default' || nameLc === 'inntekter') {
+          ids[c.id] = true;
+        }
+      }
+    });
+    // Add their underkategorier
+    categories.forEach(function (c) {
+      if (c.type === 'underkategori' && c.parentId && ids[c.parentId]) {
+        ids[c.id] = true;
+      }
+    });
+    return ids;
+  }
+
   function formatAmount(n) {
     return Math.round(n).toLocaleString('nb-NO') + ' kr';
   }
@@ -112,6 +137,14 @@
       return true;
     });
 
+    // Mark income categories so we can handle sign and totals correctly.
+    // Export stores raw tx.beløp: expenses are negative, income is positive.
+    // For display, expense amounts must be negated to become positive (matching budget sign).
+    var incomeIds = buildIncomeIds(currentData.categories);
+    entries.forEach(function (item) {
+      item.isIncome = !!incomeIds[item.catId];
+    });
+
     function sortOrder(a) {
       var name = (a.category && a.category.name) || '';
       var i = INCOME_TOP_NAMES.indexOf(name);
@@ -125,8 +158,11 @@
       return Math.abs(b.forbruk) - Math.abs(a.forbruk);
     });
 
-    var totalForbruk = entries.reduce(function (sum, e) { return sum + e.forbruk; }, 0);
-    var totalBudsjett = entries.reduce(function (sum, e) {
+    // "Forbruk mot budsjett" total: only expense/savings categories (exclude income).
+    // Negate raw amounts: expense -5000 → +5000 (matching budget convention).
+    var expenseEntries = entries.filter(function (e) { return !e.isIncome; });
+    var totalForbruk = expenseEntries.reduce(function (sum, e) { return sum + (-e.forbruk); }, 0);
+    var totalBudsjett = expenseEntries.reduce(function (sum, e) {
       var b = e.budsjett != null && e.budsjett !== '' ? Number(e.budsjett) : 0;
       return sum + b;
     }, 0);
@@ -139,10 +175,11 @@
       monthTotalEl.hidden = false;
       totalValueEl.textContent = formatAmount(totalForbruk) + ' av ' + (totalBudsjett > 0 ? formatAmount(totalBudsjett) : '– kr');
       if (totalBudsjett > 0) {
-        totalValueEl.className = 'total-value ' + (Math.abs(totalForbruk) > totalBudsjett ? 'over' : 'under');
-        var pct = Math.min(100, (Math.abs(totalForbruk) / totalBudsjett) * 100);
+        var isOver = totalForbruk > totalBudsjett;
+        totalValueEl.className = 'total-value ' + (isOver ? 'over' : 'under');
+        var pct = Math.min(100, Math.max(0, (totalForbruk / totalBudsjett) * 100));
         barFillEl.style.width = pct + '%';
-        barFillEl.className = 'bar-fill ' + (Math.abs(totalForbruk) > totalBudsjett ? 'over' : 'under');
+        barFillEl.className = 'bar-fill ' + (isOver ? 'over' : 'under');
       } else {
         totalValueEl.className = 'total-value';
         barFillEl.style.width = '0%';
@@ -159,14 +196,16 @@
       nameSpan.textContent = (item.category.icon ? item.category.icon + ' ' : '') + item.category.name;
       var valSpan = document.createElement('span');
       valSpan.className = 'sum';
-      var forbrukAbs = Math.abs(item.forbruk);
+      // For expenses/savings: negate raw amount (negative → positive).
+      // For income: keep raw amount (already positive).
+      var displayAmount = item.isIncome ? item.forbruk : -item.forbruk;
       if (item.budsjett != null && item.budsjett !== '') {
         var budsjettNum = Number(item.budsjett);
-        var overBudsjett = forbrukAbs > budsjettNum;
+        var overBudsjett = displayAmount > budsjettNum;
         valSpan.className = 'sum ' + (overBudsjett ? 'over' : 'under');
-        valSpan.textContent = formatAmount(item.forbruk) + ' av ' + formatAmount(budsjettNum) + ' kr';
+        valSpan.textContent = formatAmount(displayAmount) + ' av ' + formatAmount(budsjettNum) + ' kr';
       } else {
-        valSpan.textContent = formatAmount(item.forbruk) + ' av – kr';
+        valSpan.textContent = formatAmount(displayAmount) + ' av – kr';
       }
       li.appendChild(nameSpan);
       li.appendChild(valSpan);

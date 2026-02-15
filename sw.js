@@ -1,4 +1,4 @@
-const CACHE_NAME = 'budget-pwa-v3';
+const CACHE_NAME = 'budget-pwa-v4';
 const urlsToCache = [
   './',
   './index.html',
@@ -19,10 +19,22 @@ self.addEventListener('install', function (event) {
 self.addEventListener('fetch', function (event) {
   if (event.request.url.indexOf(self.location.origin) !== 0) return;
   if (event.request.method !== 'GET') return;
+
+  // Network-first: try fresh content, fall back to cache when offline.
   event.respondWith(
-    caches.match(event.request).then(function (response) {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then(function (response) {
+        // Got fresh response — update the cache and return it.
+        var clone = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) {
+          cache.put(event.request, clone);
+        });
+        return response;
+      })
+      .catch(function () {
+        // Offline — serve from cache.
+        return caches.match(event.request);
+      })
   );
 });
 
