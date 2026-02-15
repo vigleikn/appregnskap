@@ -199,7 +199,10 @@
       // For expenses/savings: negate raw amount (negative → positive).
       // For income: keep raw amount (already positive).
       var displayAmount = item.isIncome ? item.forbruk : -item.forbruk;
-      if (item.budsjett != null && item.budsjett !== '') {
+      if (item.isIncome) {
+        // Income: always plain white text, no over/under coloring.
+        valSpan.textContent = formatAmount(displayAmount);
+      } else if (item.budsjett != null && item.budsjett !== '') {
         var budsjettNum = Number(item.budsjett);
         var overBudsjett = displayAmount > budsjettNum;
         valSpan.className = 'sum ' + (overBudsjett ? 'over' : 'under');
