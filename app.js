@@ -80,10 +80,13 @@
       byCategoryEl.appendChild(totalLi);
     }
 
-    // By month
-    var months = data.byMonthByCategory
-      ? Object.keys(data.byMonthByCategory).sort().reverse()
-      : [];
+    // By month: forbruk / budsjett kr, rød over budsjett, grønn under
+    var byMonthByCategory = data.byMonthByCategory || {};
+    var byMonthBudget = data.byMonthBudget || {};
+    var monthSet = {};
+    Object.keys(byMonthByCategory).forEach(function (ym) { monthSet[ym] = true; });
+    Object.keys(byMonthBudget).forEach(function (ym) { monthSet[ym] = true; });
+    var months = Object.keys(monthSet).sort().reverse();
     byMonthEl.innerHTML = '';
     if (months.length === 0) {
       var p = document.createElement('p');
@@ -95,23 +98,29 @@
         var parts = ym.split('-');
         var y = parts[0];
         var m = parts[1];
-        var months = [
+        var monthNames = [
           'Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
           'Juli', 'August', 'September', 'Oktober', 'November', 'Desember',
         ];
         var mi = parseInt(m, 10) - 1;
-        return (months[mi] || m) + ' ' + y;
+        return (monthNames[mi] || m) + ' ' + y;
       }
       months.forEach(function (ym) {
-        var catSums = data.byMonthByCategory[ym];
-        var entries = Object.keys(catSums || {}).map(function (catId) {
+        var catSums = byMonthByCategory[ym] || {};
+        var catBudgets = byMonthBudget[ym] || {};
+        var catIds = new Set(Object.keys(catSums).concat(Object.keys(catBudgets)));
+        var entries = Array.from(catIds).map(function (catId) {
+          var forbruk = catSums[catId] || 0;
+          var budsjett = catBudgets[catId];
           return {
             category: categoryById.get(catId),
-            sum: catSums[catId],
+            forbruk: forbruk,
+            budsjett: budsjett,
           };
         }).filter(function (x) { return x.category; });
-        entries.sort(function (a, b) { return Math.abs(b.sum) - Math.abs(a.sum); });
-        var monthTotal = entries.reduce(function (a, x) { return a + x.sum; }, 0);
+        entries.sort(function (a, b) {
+          return Math.abs(b.forbruk) - Math.abs(a.forbruk);
+        });
 
         var monthBlock = document.createElement('div');
         monthBlock.className = 'month-block';
@@ -123,25 +132,22 @@
           var li = document.createElement('li');
           var nameSpan = document.createElement('span');
           nameSpan.textContent = (item.category.icon ? item.category.icon + ' ' : '') + item.category.name;
-          var sumSpan = document.createElement('span');
-          sumSpan.className = 'sum ' + (item.sum >= 0 ? 'positive' : 'negative');
-          sumSpan.textContent = formatAmount(item.sum);
+          var valSpan = document.createElement('span');
+          valSpan.className = 'sum';
+          var forbrukAbs = Math.abs(item.forbruk);
+          if (item.budsjett != null && item.budsjett !== '') {
+            var budsjettNum = Number(item.budsjett);
+            var overBudsjett = forbrukAbs > budsjettNum;
+            valSpan.className = 'sum ' + (overBudsjett ? 'over' : 'under');
+            valSpan.textContent = formatAmount(item.forbruk) + ' / ' + formatAmount(budsjettNum);
+          } else {
+            valSpan.textContent = formatAmount(item.forbruk) + ' / – kr';
+          }
           li.appendChild(nameSpan);
-          li.appendChild(sumSpan);
+          li.appendChild(valSpan);
           ul.appendChild(li);
         });
         monthBlock.appendChild(ul);
-        if (monthTotal !== 0) {
-          var totP = document.createElement('p');
-          totP.style.margin = '0.5rem 0 0 0';
-          totP.style.fontWeight = '600';
-          totP.style.textAlign = 'right';
-          var totSpan = document.createElement('span');
-          totSpan.className = 'sum ' + (monthTotal >= 0 ? 'positive' : 'negative');
-          totSpan.textContent = formatAmount(monthTotal);
-          totP.appendChild(totSpan);
-          monthBlock.appendChild(totP);
-        }
         byMonthEl.appendChild(monthBlock);
       });
     }

@@ -167,3 +167,5 @@ body {
 
 .month-block .sum.positive { color: var(--positive); }
 .month-block .sum.negative { color: var(--negative); }
+.month-block .sum.over { color: var(--negative); }
+.month-block .sum.under { color: var(--positive); }
