@@ -82,12 +82,26 @@
 
     // By month: forbruk / budsjett kr, rød over budsjett, grønn under
     var byMonthByCategory = data.byMonthByCategory || {};
-    var byMonthBudget = data.byMonthBudget || {};
+    var byMonthBudgetRaw = data.byMonthBudget;
+    if (byMonthBudgetRaw && typeof byMonthBudgetRaw !== 'object') {
+      byMonthBudgetRaw = {};
+    }
+    var byMonthBudget = byMonthBudgetRaw || {};
     var monthSet = {};
     Object.keys(byMonthByCategory).forEach(function (ym) { monthSet[ym] = true; });
     Object.keys(byMonthBudget).forEach(function (ym) { monthSet[ym] = true; });
     var months = Object.keys(monthSet).sort().reverse();
     byMonthEl.innerHTML = '';
+    var hasAnyBudget = Object.keys(byMonthBudget).some(function (ym) {
+      return Object.keys(byMonthBudget[ym] || {}).length > 0;
+    });
+    if (!hasAnyBudget && months.length > 0) {
+      var hint = document.createElement('p');
+      hint.className = 'no-data';
+      hint.style.marginBottom = '1rem';
+      hint.textContent = 'Sett budsjett i appen (Budsjett-siden) og eksporter på nytt for å se forbruk mot budsjett.';
+      byMonthEl.appendChild(hint);
+    }
     if (months.length === 0) {
       var p = document.createElement('p');
       p.className = 'no-data';
@@ -105,9 +119,20 @@
         var mi = parseInt(m, 10) - 1;
         return (monthNames[mi] || m) + ' ' + y;
       }
+      function normalizeMonth(ym) {
+        if (!ym || typeof ym !== 'string') return ym;
+        var parts = ym.split('-');
+        if (parts.length >= 2) {
+          var y = parts[0];
+          var m = parts[1].length === 1 ? '0' + parts[1] : parts[1];
+          return y + '-' + m;
+        }
+        return ym;
+      }
       months.forEach(function (ym) {
         var catSums = byMonthByCategory[ym] || {};
-        var catBudgets = byMonthBudget[ym] || {};
+        var ymNorm = normalizeMonth(ym);
+        var catBudgets = (byMonthBudget[ym] || byMonthBudget[ymNorm] || {});
         var catIds = new Set(Object.keys(catSums).concat(Object.keys(catBudgets)));
         var entries = Array.from(catIds).map(function (catId) {
           var forbruk = catSums[catId] || 0;
