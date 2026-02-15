@@ -145,11 +145,13 @@
       item.isIncome = !!incomeIds[item.catId];
     });
 
+    // Income always first (sorted by INCOME_TOP_NAMES order), then expenses by amount.
     function sortOrder(a) {
+      if (!a.isIncome) return INCOME_TOP_NAMES.length + 1;
       var name = (a.category && a.category.name) || '';
       var i = INCOME_TOP_NAMES.indexOf(name);
       if (i !== -1) return i;
-      return INCOME_TOP_NAMES.length;
+      return INCOME_TOP_NAMES.length; // unnamed income after named ones, before expenses
     }
     entries.sort(function (a, b) {
       var orderA = sortOrder(a);
@@ -206,9 +208,9 @@
         var budsjettNum = Number(item.budsjett);
         var overBudsjett = displayAmount > budsjettNum;
         valSpan.className = 'sum ' + (overBudsjett ? 'over' : 'under');
-        valSpan.textContent = formatAmount(displayAmount) + ' av ' + formatAmount(budsjettNum) + ' kr';
+        valSpan.textContent = formatAmount(displayAmount) + ' av ' + formatAmount(budsjettNum);
       } else {
-        valSpan.textContent = formatAmount(displayAmount) + ' av – kr';
+        valSpan.textContent = formatAmount(displayAmount) + ' av –';
       }
       li.appendChild(nameSpan);
       li.appendChild(valSpan);
