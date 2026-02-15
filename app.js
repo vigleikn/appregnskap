@@ -16,6 +16,12 @@
   const totalValueEl = document.getElementById('total-value');
   const barTrackEl = document.getElementById('bar-track');
   const barFillEl = document.getElementById('bar-fill');
+  const monthViewEl = document.getElementById('month-view');
+  const detailViewEl = document.getElementById('detail-view');
+  const detailTitleEl = document.getElementById('detail-title');
+  const detailSubtitleEl = document.getElementById('detail-subtitle');
+  const detailTransactionsEl = document.getElementById('detail-transactions');
+  const btnBack = document.getElementById('btn-back');
 
   var currentData = null;
   var availableMonths = [];
@@ -193,6 +199,7 @@
     monthCategoriesEl.innerHTML = '';
     entries.forEach(function (item) {
       var li = document.createElement('li');
+      li.className = 'category-row';
       var nameSpan = document.createElement('span');
       nameSpan.className = 'category-name';
       nameSpan.textContent = (item.category.icon ? item.category.icon + ' ' : '') + item.category.name;
@@ -214,9 +221,122 @@
       }
       li.appendChild(nameSpan);
       li.appendChild(valSpan);
+      // Drill-down: tap row to see transactions
+      li.addEventListener('click', function () {
+        showDetail(item.catId, ym, item.category, item.isIncome);
+      });
       monthCategoriesEl.appendChild(li);
     });
   }
+
+  // ── Detail view (transaction drill-down) ──────────────────────────────
+
+  /**
+   * Parse a transaction date string to a YYYY-MM string for month matching.
+   * Supports dd.mm.yy, dd.mm.yyyy, yyyy-mm-dd.
+   */
+  function txToYearMonth(dato) {
+    if (!dato || typeof dato !== 'string') return '';
+    var s = dato.trim();
+    if (s.indexOf('.') !== -1) {
+      var p = s.split('.');
+      if (p.length >= 3) {
+        var yr = p[2].length === 2 ? '20' + p[2] : p[2];
+        var mo = p[1].length === 1 ? '0' + p[1] : p[1];
+        return yr + '-' + mo;
+      }
+      return '';
+    }
+    if (s.indexOf('-') !== -1) {
+      var parts = s.split('-');
+      if (parts.length >= 2) {
+        var m = parts[1].length === 1 ? '0' + parts[1] : parts[1];
+        return parts[0] + '-' + m;
+      }
+    }
+    return '';
+  }
+
+  function showDetail(catId, ym, category, isIncome) {
+    if (!currentData || !detailViewEl) return;
+
+    var txs = (currentData.transactions || []).filter(function (tx) {
+      if (tx.c !== catId) return false;
+      var txYm = txToYearMonth(tx.d);
+      return txYm === ym || txYm === normalizeMonth(ym);
+    });
+
+    // Sort by date (newest first)
+    txs.sort(function (a, b) {
+      // Compare raw date strings; parse to comparable format
+      var aYmd = parseDateSortable(a.d);
+      var bYmd = parseDateSortable(b.d);
+      return bYmd.localeCompare(aYmd);
+    });
+
+    var label = (category.icon ? category.icon + ' ' : '') + category.name;
+    detailTitleEl.textContent = label;
+    detailSubtitleEl.textContent = formatMonthLabel(ym) + ' — ' + txs.length + ' transaksjoner';
+
+    detailTransactionsEl.innerHTML = '';
+    txs.forEach(function (tx) {
+      var li = document.createElement('li');
+      var dateSpan = document.createElement('span');
+      dateSpan.className = 'tx-date';
+      dateSpan.textContent = formatDate(tx.d);
+      var textSpan = document.createElement('span');
+      textSpan.className = 'tx-text';
+      textSpan.textContent = tx.t;
+      var amountSpan = document.createElement('span');
+      amountSpan.className = 'tx-amount';
+      amountSpan.textContent = formatAmount(tx.b);
+      li.appendChild(dateSpan);
+      li.appendChild(textSpan);
+      li.appendChild(amountSpan);
+      detailTransactionsEl.appendChild(li);
+    });
+
+    monthViewEl.hidden = true;
+    detailViewEl.hidden = false;
+  }
+
+  /** Parse dd.mm.yy / dd.mm.yyyy / yyyy-mm-dd to YYYY-MM-DD for sorting. */
+  function parseDateSortable(d) {
+    if (!d) return '';
+    var s = d.trim();
+    if (s.indexOf('.') !== -1) {
+      var p = s.split('.');
+      if (p.length >= 3) {
+        var yr = p[2].length === 2 ? '20' + p[2] : p[2];
+        var mo = p[1].length === 1 ? '0' + p[1] : p[1];
+        var dy = p[0].length === 1 ? '0' + p[0] : p[0];
+        return yr + '-' + mo + '-' + dy;
+      }
+    }
+    return s; // assume yyyy-mm-dd already
+  }
+
+  /** Format a date for display: dd.mm */
+  function formatDate(d) {
+    if (!d) return '';
+    var s = d.trim();
+    if (s.indexOf('.') !== -1) {
+      var p = s.split('.');
+      if (p.length >= 2) return p[0] + '.' + p[1];
+    }
+    if (s.indexOf('-') !== -1) {
+      var parts = s.split('-');
+      if (parts.length >= 3) return parts[2] + '.' + parts[1];
+    }
+    return s;
+  }
+
+  btnBack.addEventListener('click', function () {
+    detailViewEl.hidden = true;
+    monthViewEl.hidden = false;
+  });
+
+  // ── Main render ──────────────────────────────────────────────────────
 
   function render(data) {
     if (!data || !data.categories) {

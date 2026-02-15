@@ -27,7 +27,7 @@
 
       <section id="has-data" class="has-data" hidden>
         <div class="meta card" id="meta"></div>
-        <section class="card month-view">
+        <section class="card month-view" id="month-view">
           <div class="month-nav" id="month-nav">
             <button type="button" class="nav-arrow" id="btn-prev" aria-label="Forrige måned">←</button>
             <h2 class="month-title" id="month-title"></h2>
@@ -40,6 +40,17 @@
           </div>
           <p class="no-data hint" id="month-hint" hidden></p>
           <ul id="month-categories" class="category-list"></ul>
+        </section>
+
+        <section class="card detail-view" id="detail-view" hidden>
+          <div class="detail-header">
+            <button type="button" class="nav-arrow" id="btn-back" aria-label="Tilbake">←</button>
+            <div class="detail-title-group">
+              <h2 class="detail-title" id="detail-title"></h2>
+              <p class="detail-subtitle" id="detail-subtitle"></p>
+            </div>
+          </div>
+          <ul id="detail-transactions" class="transaction-list"></ul>
         </section>
       </section>
     </main>
